@@ -1,0 +1,29 @@
+services:
+  akamai-solver:
+    image: akamai-solver:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - /tmp/itxpmonitor.sock:/tmp/itxpmonitor.sock
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    env_file: .env
+
+  redis:
+    image: redis
+    container_name: akamai-solver-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+volumes:
+  redis-data:
+

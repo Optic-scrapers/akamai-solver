@@ -1,0 +1,14 @@
+FROM python:3.13-slim AS akamai-base
+
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN apt-get update && apt-get install -y \
+    tini \
+    curl \
+    python3-dev \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/venv
+
