@@ -10,7 +10,7 @@ import psutil
 from cloakbrowser import launch_async
 from playwright.async_api import Browser, BrowserContext, Page
 
-from utils import Session
+from utils import Session, log
 
 PROFILE_PATTERNS = (
     "/tmp/.org.chromium*",
@@ -109,50 +109,59 @@ async def solve(
     proxy: str | None,
     solver_name: str = "akamai",
 ) -> Session:
+    domain = urlsplit(target_url).netloc
     existing_pids = {proc.pid for proc in iter_solver_processes()}
     existing_profiles = snapshot_tmp_profiles()
     browser: Browser | None = None
+    log.info("solving", backend="cloakbrowser", domain=domain, proxy=proxy, solver=solver_name)
     try:
-        async with asyncio.timeout(60):
-            browser = await launch_async(
-                proxy=proxy,
-                headless=True,
-                humanize=True,
-                locale="en-US",
-                timezone="America/Chicago",
-            )
-            context: BrowserContext = browser.contexts[0] if browser.contexts else await browser.new_context()
-            page: Page = await context.new_page()
-            captured: dict[str, str] = {}
+        try:
+            async with asyncio.timeout(60):
+                browser = await launch_async(
+                    proxy=proxy,
+                    headless=True,
+                    humanize=True,
+                    locale="en-US",
+                    timezone="America/Chicago",
+                )
+                context: BrowserContext = browser.contexts[0] if browser.contexts else await browser.new_context()
+                page: Page = await context.new_page()
+                captured: dict[str, str] = {}
 
-            async def on_request(request) -> None:
-                if captured:
-                    return
-                if request.url.startswith(target_url):
-                    captured.update(await request.all_headers())
+                async def on_request(request) -> None:
+                    if captured:
+                        return
+                    if request.url.startswith(target_url):
+                        captured.update(await request.all_headers())
 
-            page.on("request", on_request)
-            user_agent = await page.evaluate("navigator.userAgent")
-            await page.goto(landing_url(target_url), wait_until="domcontentloaded")
-            await page.wait_for_timeout(random.randint(1000, 3000))
-            response = await page.goto(target_url, wait_until="domcontentloaded")
-            if response and response.status >= 400:
-                raise RuntimeError(f"challenge url returned {response.status}")
-            cookies = await context.cookies()
-            if not cookies:
-                raise RuntimeError("no cookies")
-            return Session(
-                cookies={cookie["name"]: cookie["value"] for cookie in cookies},
-                headers=build_headers(captured, user_agent),
-                proxy=proxy,
-                extra={
-                    "created_at": str(time.time_ns() // 1_000_000),
-                    "solver": solver_name,
-                },
-            )
+                page.on("request", on_request)
+                user_agent = await page.evaluate("navigator.userAgent")
+                await page.goto(landing_url(target_url), wait_until="domcontentloaded")
+                await page.wait_for_timeout(random.randint(1000, 3000))
+                response = await page.goto(target_url, wait_until="domcontentloaded")
+                if response and response.status >= 400:
+                    raise RuntimeError(f"challenge url returned {response.status}")
+                cookies = await context.cookies()
+                if not cookies:
+                    raise RuntimeError("no cookies")
+                log.info("solved", backend="cloakbrowser", domain=domain, proxy=proxy, solver=solver_name)
+                return Session(
+                    cookies={cookie["name"]: cookie["value"] for cookie in cookies},
+                    headers=build_headers(captured, user_agent),
+                    proxy=proxy,
+                    extra={
+                        "created_at": str(time.time_ns() // 1_000_000),
+                        "solver": solver_name,
+                    },
+                )
+        except asyncio.TimeoutError:
+            log.warning("solver_timeout", backend="cloakbrowser", domain=domain, proxy=proxy, solver=solver_name)
+            raise
+        except Exception:
+            log.exception("solving_failed", backend="cloakbrowser", domain=domain, proxy=proxy, solver=solver_name)
+            raise
     finally:
         if browser:
             await browser.close()
         cleanup_solver_processes(existing_pids)
         cleanup_tmp_profiles(existing_profiles)
-
