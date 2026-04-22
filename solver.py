@@ -146,6 +146,10 @@ async def solve(
                     if request.url.startswith(target_url):
                         captured.update(await request.all_headers())
 
+                await page.route(
+                    "**/*",
+                    lambda route: route.abort() if route.request.resource_type == "media" else route.continue_(),
+                )
                 page.on("request", on_request)
                 user_agent = await page.evaluate("navigator.userAgent")
                 
