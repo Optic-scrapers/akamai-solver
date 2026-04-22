@@ -10,7 +10,7 @@ import psutil
 from cloakbrowser import launch_async
 from playwright.async_api import Browser, BrowserContext, Page
 
-from utils import Session, log
+from utils import Session, log, parse_proxy
 
 PROFILE_PATTERNS = (
     "/tmp/.org.chromium*",
@@ -113,12 +113,22 @@ async def solve(
     existing_pids = {proc.pid for proc in iter_solver_processes()}
     existing_profiles = snapshot_tmp_profiles()
     browser: Browser | None = None
+
+    proxy_config = None
+    if proxy:
+        proxy_user, proxy_pass, proxy_server = parse_proxy(proxy)
+        proxy_config = {
+            "server": f"http://{proxy_server}",
+            "username": proxy_user,
+            "password": proxy_pass,
+        }
+
     log.info("solving", backend="cloakbrowser", domain=domain, proxy=proxy, solver=solver_name)
     try:
         try:
             async with asyncio.timeout(60):
                 browser = await launch_async(
-                    proxy=proxy,
+                    proxy=proxy_config,
                     headless=True,
                     humanize=True,
                     locale="en-US",

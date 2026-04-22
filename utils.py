@@ -36,6 +36,14 @@ class Session:
     extra: dict[str, str] | None = None
 
 
+def parse_proxy(proxy: str) -> tuple[str, str, str]:
+    # http://user:pass@server:port
+    parts = proxy.split("@")
+    proxy_server = parts[-1]
+    proxy_user, proxy_pass = parts[0].split("/")[-1].split(":")
+    return proxy_user, proxy_pass, proxy_server
+
+
 def send_heartbeat(source: str) -> None:
     magent_running = os.getenv("MAGENT_RUNNING", "false").lower() in ("true", "1", "yes")
     if not magent_running:
