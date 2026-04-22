@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     network_mode: host
     restart: always
+    environment:
+      REDIS_HOST: 127.0.0.1
     volumes:
       - /tmp/itxpmonitor.sock:/tmp/itxpmonitor.sock
     deploy:
