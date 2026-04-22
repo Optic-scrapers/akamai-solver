@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    network_mode: host
     restart: always
     volumes:
       - /tmp/itxpmonitor.sock:/tmp/itxpmonitor.sock
@@ -26,4 +27,3 @@ services:
 
 volumes:
   redis-data:
-
