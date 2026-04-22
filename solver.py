@@ -148,11 +148,22 @@ async def solve(
 
                 page.on("request", on_request)
                 user_agent = await page.evaluate("navigator.userAgent")
+                
                 await page.goto(landing_url(target_url), wait_until="domcontentloaded")
-                await page.wait_for_timeout(random.randint(1000, 3000))
+                await page.wait_for_timeout(2000)
+                
+                viewport = await page.evaluate("() => ({width: window.innerWidth, height: window.innerHeight})")
+                await page.mouse.move(
+                    random.randint(0, viewport["width"] - 1),
+                    random.randint(0, viewport["height"] - 1),
+                    steps=random.randint(8, 20),
+                )
+                await page.mouse.wheel(0, random.randint(300, 900))
+                
                 response = await page.goto(target_url, wait_until="domcontentloaded")
                 if response and response.status >= 400:
                     raise RuntimeError(f"challenge url returned {response.status}")
+                
                 cookies = await context.cookies()
                 if not cookies:
                     raise RuntimeError("no cookies")
