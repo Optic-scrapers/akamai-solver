@@ -49,5 +49,4 @@ RUN python -c "from cloakbrowser import ensure_binary; ensure_binary()"
 COPY main.py solver.py utils.py /app/
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/opt/venv/bin/python", "main.py"]
-
+CMD ["xvfb-run", "--auto-servernum", "-s", "-screen 0 1920x1080x24", "/opt/venv/bin/python", "main.py"]

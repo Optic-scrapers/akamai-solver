@@ -23,6 +23,7 @@ PROCESS_NAMES = {
     "cloakbrowser",
     "playwright",
 }
+WINDOW_SIZE = {"width": 1920, "height": 1080}
 
 
 def iter_solver_processes() -> list[psutil.Process]:
@@ -129,12 +130,13 @@ async def solve(
             async with asyncio.timeout(60):
                 browser = await launch_async(
                     proxy=proxy_config,
-                    headless=True,
+                    headless=False,
                     humanize=True,
                     locale="en-US",
                     timezone="America/Chicago",
+                    args=[f"--window-size={WINDOW_SIZE['width']},{WINDOW_SIZE['height']}", "--window-position=0,0"],
                 )
-                context: BrowserContext = browser.contexts[0] if browser.contexts else await browser.new_context()
+                context: BrowserContext = await browser.new_context(no_viewport=True)
                 page: Page = await context.new_page()
                 captured: dict[str, str] = {}
 

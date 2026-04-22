@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
     tini \
     curl \
     python3-dev \
+    xvfb \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python -m venv /opt/venv
-
